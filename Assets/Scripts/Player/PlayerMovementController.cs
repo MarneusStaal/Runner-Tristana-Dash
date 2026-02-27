@@ -41,6 +41,7 @@ public class PlayerMovementController : MonoBehaviour
     private PlayerCommand _inputBuffer = PlayerCommand.Idle;
 
     private PlayerInventoryController _inventoryController;
+    private PlayerAnimationController _animationController;
 
     private Coroutine _flyingCoroutine = null;
 
@@ -59,6 +60,7 @@ public class PlayerMovementController : MonoBehaviour
         _targetPosition = new Vector3(_lanePositions[_currentLaneIndex].position.x, _flyingPositions[_currentFlyingLaneIndex].position.y, transform.position.z);
 
         _inventoryController = GetComponent<PlayerInventoryController>();
+        _animationController = GetComponent<PlayerAnimationController>();
     }
 
     private void Update()
@@ -216,7 +218,9 @@ public class PlayerMovementController : MonoBehaviour
             yield return new WaitForSeconds(1);
         }
 
-        //Do some damage and slow down
+        _animationController.TakeDamage(transform.position.y);
+
+        yield return new WaitForSeconds(_animationController.DamageAnimationDuration);
 
         FlyDown();
     }
