@@ -70,6 +70,8 @@ public class PlayerMovementController : MonoBehaviour
             transform.position = Vector3.MoveTowards(transform.position, _targetPosition, _strafeSpeed * Time.deltaTime);
 
             if (transform.position == _targetPosition) _isMoving = false;
+
+            if (!_isMoving && transform.position.y == _flyingPositions[0].position.y) _animationController.Run();
         }
         else if (!_isJumping) HandleInputBufferCommands();
     }
@@ -101,6 +103,8 @@ public class PlayerMovementController : MonoBehaviour
 
     private IEnumerator JumpCoroutine()
     {
+        _animationController.Jump(_jumpDuration);
+
         _isJumping = true;
 
         float jumpTimer = 0f;
@@ -108,10 +112,10 @@ public class PlayerMovementController : MonoBehaviour
         while (jumpTimer < _jumpDuration)
         {
             jumpTimer += Time.deltaTime;
-            var normalizedTime = jumpTimer / _jumpDuration;
+            float normalizedTime = jumpTimer / _jumpDuration;
 
-            var targetHeight = (_jumpCurve.Evaluate(normalizedTime) * _jumpHeight) + 1;
-            var targetPosition = new Vector3(transform.position.x, targetHeight, transform.position.z);
+            float targetHeight = (_jumpCurve.Evaluate(normalizedTime) * _jumpHeight);
+            Vector3 targetPosition = new Vector3(transform.position.x, targetHeight, transform.position.z);
 
             transform.position = targetPosition;
 
@@ -211,6 +215,8 @@ public class PlayerMovementController : MonoBehaviour
 
     private IEnumerator FlyingCoroutine()
     {
+        _animationController.FlyUp();
+
         while (_inventoryController.Fuel > 0)
         {
             _inventoryController.Fuel -= 1;
@@ -227,6 +233,8 @@ public class PlayerMovementController : MonoBehaviour
 
     private void FlyDown()
     {
+        _animationController.FlyDown();
+
         _isMoving = true;
         _isFlying = false;
 
