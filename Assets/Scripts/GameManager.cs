@@ -1,7 +1,16 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using static UnityEngine.Rendering.HableCurve;
+
+public enum SpeedState
+{
+    Stop,
+    Walk,
+    Run,
+    Fly
+}
 
 public class GameManager : MonoBehaviour
 {
@@ -9,18 +18,30 @@ public class GameManager : MonoBehaviour
 
     // ==========================================
 
+    [Header("Segments")]
     [SerializeField] private SegmentController _initialSegment;
     [SerializeField] private SegmentController[] _segmentPool;
     [SerializeField] private int _segmentNumbers;
-    
 
-    [SerializeField] private float _speed = 10f;
+    [Header("Movement Speeds")]
+    [SerializeField] private float _speed = 0f;
+    [SerializeField] private float _walkSpeed = 5f;
+    [SerializeField] private float _runSpeed = 10f;
+    [SerializeField] private float _flyingSpeed = 15f;
+    [SerializeField] private float _accelerationSpeed = 5f;
+    private float _targetSpeed = 0f;
 
+    [Header("Destory Segment")]
     [SerializeField] float _destroyPositionZ = -40f;
 
     [Header("Debug")]
     [SerializeField] private List<SegmentController> _instanciatedSegments = new List<SegmentController>();
     [SerializeField] private SegmentController _toRemoveSegment;
+
+    private bool _isJumping;
+    private bool _isWalking;
+    private bool _isFlying;
+    private bool _isRunning;
 
     private void Awake()
     {
@@ -32,7 +53,26 @@ public class GameManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+
+        RunnerEventSystem.OnSpeedTargetChange += SetTargetSpeed;
+        RunnerEventSystem.OnSpeedChange += SetSpeed;
+        RunnerEventSystem.OnPlayerJump += HandlePlayerJump;
+        RunnerEventSystem.OnFlyUp += StartFlying;
+        RunnerEventSystem.OnFlyEnd += StopFlying;
     }
+
+    private void OnDestroy()
+    {
+        RunnerEventSystem.OnSpeedTargetChange -= SetTargetSpeed;
+        RunnerEventSystem.OnSpeedChange -= SetSpeed;
+        RunnerEventSystem.OnPlayerJump -= HandlePlayerJump;
+        RunnerEventSystem.OnFlyUp -= StartFlying;
+        RunnerEventSystem.OnFlyEnd -= StopFlying;
+    }
+
+    private void StartFlying() => _isFlying = true;
+
+    private void StopFlying() => _isFlying = false;
 
     // ==========================================
 
@@ -44,11 +84,17 @@ public class GameManager : MonoBehaviour
     private void Init()
     {
         GenerateBaseSegments();
+        SetTargetSpeed(SpeedState.Run);
     }
 
     private void Update()
     {
         SegmentController segment = null;
+
+        if (_speed <= _targetSpeed) _speed += _accelerationSpeed * Time.deltaTime;
+        if (_speed > _targetSpeed + 0.1) _speed -= _accelerationSpeed * Time.deltaTime;
+
+        HandleMoveAnimation();
 
         for (int i = 0; i < _instanciatedSegments.Count; i++)
         {
@@ -72,6 +118,40 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void HandleMoveAnimation()
+    {
+        if (_isJumping || _isFlying) return;
+
+        if (_speed < _runSpeed - 0.1f && !_isWalking)
+        {
+            Debug.Log("Started Walking");
+
+            RunnerEventSystem.OnStartWalking?.Invoke();
+            _isWalking = true;
+            _isRunning = false;
+        }
+        else if (_speed >= _runSpeed && !_isRunning)
+        {
+            Debug.Log("Started Running");
+
+            RunnerEventSystem.OnStartRunning?.Invoke();
+            _isWalking = false;
+            _isRunning = true;
+        }
+    }
+
+    private void HandlePlayerJump(float duration)
+    {
+        StartCoroutine(HandlePlayerJumpCoroutine(duration));
+    }
+
+    private IEnumerator HandlePlayerJumpCoroutine(float duration)
+    {
+        _isJumping = true;
+        yield return new WaitForSeconds(duration);
+        _isJumping = false;
+    }
+
     private void GenerateBaseSegments()
     {
         SegmentController segment = Instantiate(_initialSegment, Vector3.zero, Quaternion.identity);
@@ -87,7 +167,7 @@ public class GameManager : MonoBehaviour
     {
         int random = 0;
 
-        random = Random.Range(0, _segmentPool.Length - 1);
+        random = Random.Range(0, _segmentPool.Length);
 
         SegmentController segment = Instantiate(_segmentPool[random], LastSegment().EndOfSegment.position, Quaternion.identity);
         _instanciatedSegments.Add(segment);
@@ -97,4 +177,29 @@ public class GameManager : MonoBehaviour
     {
         return _instanciatedSegments[_instanciatedSegments.Count - 1];
     }
+
+    private void SetTargetSpeed(SpeedState speed)
+    {
+        switch (speed)
+        {
+            case SpeedState.Stop: _targetSpeed = 0f; break;
+            case SpeedState.Walk: _targetSpeed = _walkSpeed; break;
+            case SpeedState.Run: _targetSpeed = _runSpeed; break;
+            case SpeedState.Fly: _targetSpeed = _flyingSpeed; break;
+            default: goto case SpeedState.Stop;
+        }
+    }
+
+    private void SetSpeed(SpeedState speed)
+    {
+        switch (speed)
+        {
+            case SpeedState.Stop: _speed = 0f; break;
+            case SpeedState.Walk: _speed = _walkSpeed; break;
+            case SpeedState.Run: _speed = _runSpeed; break;
+            case SpeedState.Fly: _speed = _flyingSpeed; break;
+            default: goto case SpeedState.Stop;
+        }
+    }
+
 }

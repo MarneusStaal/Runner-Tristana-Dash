@@ -13,11 +13,27 @@ public class PlayerAnimationController : MonoBehaviour
 
     [SerializeField]private SkinnedMeshRenderer[] _meshs;
 
-    private void Start()
+    private void Awake()
     {
+        RunnerEventSystem.OnPlayerJump += Jump;
+        RunnerEventSystem.OnPlayerOutOfFuel += TakeFlyingDamage;
+        RunnerEventSystem.OnFlyDown += FlyDown;
+        RunnerEventSystem.OnFlyUp += FlyUp;
+        RunnerEventSystem.OnStartRunning += Run;
+        RunnerEventSystem.OnStartWalking += Walk;
     }
 
-    public void TakeDamage(float currentHeight)
+    private void OnDestroy()
+    {
+        RunnerEventSystem.OnPlayerJump -= Jump;
+        RunnerEventSystem.OnPlayerOutOfFuel -= TakeFlyingDamage;
+        RunnerEventSystem.OnFlyDown -= FlyDown;
+        RunnerEventSystem.OnFlyUp -= FlyUp;
+        RunnerEventSystem.OnStartRunning -= Run;
+        RunnerEventSystem.OnStartWalking -= Walk;
+    }
+
+    private void TakeFlyingDamage(float currentHeight)
     {
         StartCoroutine(TakeFlyingDamageCoroutine(currentHeight));
     }
@@ -56,8 +72,6 @@ public class PlayerAnimationController : MonoBehaviour
             yield return new WaitForSeconds(_animationSpeed);
         }
 
-        //_playerAnimator.SetBool("IsFalling", false);
-
         DamageFlip();
 
         HandleDamageMesh(true);
@@ -77,41 +91,60 @@ public class PlayerAnimationController : MonoBehaviour
         else transform.rotation = Quaternion.Euler(new Vector3(0, 180, 0));
     }
 
-    public void Jump(float jumpDuration)
+    private void Jump(float jumpDuration)
     {
         StartCoroutine(JumpCoroutine(jumpDuration));
     }
 
     private IEnumerator JumpCoroutine(float jumpDuration)
     {
+        //_playerAnimator.SetTrigger("Jumping");
+
         _playerAnimator.SetBool("IsJumping", true);
-
-        yield return new WaitForSeconds(jumpDuration / 2);
-
-        _playerAnimator.SetBool("IsJumping", false);
-        _playerAnimator.SetBool("IsFalling", true);
-
-        yield return new WaitForSeconds(jumpDuration / 2);
-
-        _playerAnimator.SetBool("IsFalling", false);
-    }
-
-    public void FlyUp()
-    {
-        _playerAnimator.SetBool("IsFlying", true);
-    }
-
-    public void FlyDown()
-    {
-        _playerAnimator.SetBool("IsFlying", false);
-        _playerAnimator.SetBool("IsFalling", true);
-    }
-
-    public void Run()
-    {
-        _playerAnimator.SetBool("IsFlying", false);
-        _playerAnimator.SetBool("IsFalling", false);
-        _playerAnimator.SetBool("IsJumping", false);
         _playerAnimator.SetBool("IsWalking", false);
+        _playerAnimator.SetBool("IsRunning", false);
+
+        yield return new WaitForSeconds(jumpDuration / 2);
+
+        //_playerAnimator.SetTrigger("Falling");
+        _playerAnimator.SetBool("IsJumping", false);
+        _playerAnimator.SetBool("IsFalling", true);
+
+        yield return new WaitForSeconds(jumpDuration / 2);
+
+        _playerAnimator.SetBool("IsRunning", true);
+        _playerAnimator.SetBool("IsFalling", false);
+    }
+
+    private void FlyUp()
+    {
+        //_playerAnimator.SetTrigger("Flying");
+        _playerAnimator.SetBool("IsFlying", true);
+        _playerAnimator.SetBool("IsRunning", false);
+        _playerAnimator.SetBool("IsWalking", false);
+    }
+
+    private void FlyDown()
+    {
+        //_playerAnimator.SetTrigger("Falling");
+        _playerAnimator.SetBool("IsFlying", false);
+        _playerAnimator.SetBool("IsFalling", true);
+    }
+
+    private void Run()
+    {
+        Debug.Log("Run was called !");
+        //_playerAnimator.SetTrigger("Running");
+        _playerAnimator.SetBool("IsRunning", true);
+        _playerAnimator.SetBool("IsWalking", false);
+        _playerAnimator.SetBool("IsFalling", false);
+    }
+
+    private void Walk()
+    {
+        Debug.Log("Walk was called !");
+        //_playerAnimator.SetTrigger("Walking");
+        _playerAnimator.SetBool("IsRunning", false);
+        _playerAnimator.SetBool("IsWalking", true);
     }
 }

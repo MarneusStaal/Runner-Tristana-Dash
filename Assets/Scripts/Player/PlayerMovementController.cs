@@ -71,9 +71,18 @@ public class PlayerMovementController : MonoBehaviour
 
             if (transform.position == _targetPosition) _isMoving = false;
 
-            if (!_isMoving && transform.position.y == _flyingPositions[0].position.y) _animationController.Run();
+            // Handle the case where we are coming from the flying position
+            if (!_isMoving && transform.position.y == _flyingPositions[0].position.y && _isFlying) HandleDescent();
         }
         else if (!_isJumping) HandleInputBufferCommands();
+    }
+
+    private void HandleDescent()
+    {
+        _isFlying = false;
+        RunnerEventSystem.OnSpeedTargetChange?.Invoke(SpeedState.Run);
+        RunnerEventSystem.OnStartRunning?.Invoke();
+        RunnerEventSystem.OnFlyEnd?.Invoke();
     }
 
     private void HandleInputBufferCommands()
@@ -103,7 +112,7 @@ public class PlayerMovementController : MonoBehaviour
 
     private IEnumerator JumpCoroutine()
     {
-        _animationController.Jump(_jumpDuration);
+        RunnerEventSystem.OnPlayerJump?.Invoke(_jumpDuration);
 
         _isJumping = true;
 
@@ -205,6 +214,8 @@ public class PlayerMovementController : MonoBehaviour
             _isMoving = true;
             _isFlying = true;
 
+            RunnerEventSystem.OnSpeedTargetChange?.Invoke(SpeedState.Fly);
+
             _currentFlyingLaneIndex++;
 
             _targetPosition.y = _flyingPositions[_currentFlyingLaneIndex].position.y;
@@ -215,7 +226,7 @@ public class PlayerMovementController : MonoBehaviour
 
     private IEnumerator FlyingCoroutine()
     {
-        _animationController.FlyUp();
+        RunnerEventSystem.OnFlyUp?.Invoke();
 
         while (_inventoryController.Fuel > 0)
         {
@@ -224,7 +235,9 @@ public class PlayerMovementController : MonoBehaviour
             yield return new WaitForSeconds(1);
         }
 
-        _animationController.TakeDamage(transform.position.y);
+        RunnerEventSystem.OnPlayerOutOfFuel?.Invoke(transform.position.y);
+        RunnerEventSystem.OnSpeedChange?.Invoke(SpeedState.Stop);
+        RunnerEventSystem.OnSpeedTargetChange?.Invoke(SpeedState.Stop);
 
         yield return new WaitForSeconds(_animationController.DamageAnimationDuration);
 
@@ -233,10 +246,9 @@ public class PlayerMovementController : MonoBehaviour
 
     private void FlyDown()
     {
-        _animationController.FlyDown();
+        RunnerEventSystem.OnFlyDown?.Invoke();
 
         _isMoving = true;
-        _isFlying = false;
 
         _currentFlyingLaneIndex--;
 
