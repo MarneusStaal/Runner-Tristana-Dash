@@ -36,7 +36,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Debug")]
     [SerializeField] private List<SegmentController> _instanciatedSegments = new List<SegmentController>();
-    [SerializeField] private SegmentController _toRemoveSegment;
+    private SegmentController _toRemoveSegment;
 
     private bool _isJumping;
     private bool _isWalking;
