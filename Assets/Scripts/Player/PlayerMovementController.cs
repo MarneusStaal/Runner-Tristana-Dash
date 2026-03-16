@@ -45,6 +45,16 @@ public class PlayerMovementController : MonoBehaviour
 
     private Coroutine _flyingCoroutine = null;
 
+    private void Awake()
+    {
+        RunnerEventSystem.OnFlyingDamage += FlyDown;
+    }
+
+    private void OnDestroy()
+    {
+        RunnerEventSystem.OnFlyingDamage -= FlyDown;
+    }
+
     void Start()
     {
         if (_moveAction != null)
@@ -235,7 +245,7 @@ public class PlayerMovementController : MonoBehaviour
             yield return new WaitForSeconds(1);
         }
 
-        RunnerEventSystem.OnPlayerOutOfFuel?.Invoke(transform.position.y);
+        RunnerEventSystem.OnPlayerOutOfFuel?.Invoke();
         RunnerEventSystem.OnSpeedChange?.Invoke(SpeedState.Stop);
         RunnerEventSystem.OnSpeedTargetChange?.Invoke(SpeedState.Stop);
 

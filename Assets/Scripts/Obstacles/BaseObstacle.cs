@@ -17,7 +17,7 @@ public abstract class BaseObstacle : MonoBehaviour, IObstacle
         //    Destroy(gameObject);
         //}
     }
-    public virtual void ObstacleEffect()
+    public virtual void ObstacleEffect(bool isFlying)
     {
         throw new System.NotImplementedException();
     }

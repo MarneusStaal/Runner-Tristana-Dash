@@ -9,7 +9,7 @@ public class ShortSlowObstacle : BaseObstacle
         _collider = GetComponent<BoxCollider>();
     }
 
-    public override void ObstacleEffect()
+    public override void ObstacleEffect(bool isFlying)
     {
         RunnerEventSystem.OnSpeedChange?.Invoke(SpeedState.Walk);
         

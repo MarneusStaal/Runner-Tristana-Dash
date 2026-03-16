@@ -3,8 +3,9 @@ using System;
 public static class RunnerEventSystem
 {
     public static Action<float> OnPlayerJump;
-    public static Action<float> OnPlayerOutOfFuel;
-    
+    public static Action OnPlayerOutOfFuel;
+    public static Action OnFlyingDamage;
+
     public static Action OnFlyDown;
     public static Action OnFlyUp;
     public static Action OnFlyEnd;

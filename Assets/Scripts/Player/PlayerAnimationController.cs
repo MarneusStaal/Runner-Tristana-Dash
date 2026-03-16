@@ -16,7 +16,8 @@ public class PlayerAnimationController : MonoBehaviour
     private void Awake()
     {
         RunnerEventSystem.OnPlayerJump += Jump;
-        RunnerEventSystem.OnPlayerOutOfFuel += TakeFlyingDamage;
+        RunnerEventSystem.OnPlayerOutOfFuel += HandleOutOfFuel;
+        RunnerEventSystem.OnFlyingDamage += HandleFlyingDamage;
         RunnerEventSystem.OnFlyDown += FlyDown;
         RunnerEventSystem.OnFlyUp += FlyUp;
         RunnerEventSystem.OnStartRunning += Run;
@@ -26,22 +27,25 @@ public class PlayerAnimationController : MonoBehaviour
     private void OnDestroy()
     {
         RunnerEventSystem.OnPlayerJump -= Jump;
-        RunnerEventSystem.OnPlayerOutOfFuel -= TakeFlyingDamage;
+        RunnerEventSystem.OnFlyingDamage -= HandleOutOfFuel;
+        RunnerEventSystem.OnFlyingDamage += HandleFlyingDamage;
         RunnerEventSystem.OnFlyDown -= FlyDown;
         RunnerEventSystem.OnFlyUp -= FlyUp;
         RunnerEventSystem.OnStartRunning -= Run;
         RunnerEventSystem.OnStartWalking -= Walk;
     }
 
-    private void TakeFlyingDamage(float currentHeight)
+    private void HandleOutOfFuel()
     {
-        StartCoroutine(TakeFlyingDamageCoroutine(currentHeight));
+        StartCoroutine(TakeDamageOutOfFuelCoroutine());
     }
 
-    private IEnumerator TakeFlyingDamageCoroutine(float currentHeight)
+    private IEnumerator TakeDamageOutOfFuelCoroutine()
     {
         float timer = 0f;
         bool isBlinking = false;
+
+        float currentHeight = transform.position.y;
 
         _playerAnimator.SetBool("IsFlying", false);
         _playerAnimator.SetBool("IsFalling", true);
@@ -73,6 +77,40 @@ public class PlayerAnimationController : MonoBehaviour
         }
 
         DamageFlip();
+
+        HandleDamageMesh(true);
+    }
+
+    private void HandleFlyingDamage()
+    {
+        StartCoroutine(TakeFlyingDamageCoroutine());
+    }
+
+    private IEnumerator TakeFlyingDamageCoroutine()
+    {
+        float timer = 0f;
+        bool isBlinking = false;
+
+        _playerAnimator.SetBool("IsFlying", false);
+        _playerAnimator.SetBool("IsFalling", true);
+
+        while (timer <= _damageAnimationDuration)
+        {
+            timer += _animationSpeed;
+
+            if (!isBlinking)
+            {
+                HandleDamageMesh(false);
+                isBlinking = true;
+            }
+            else
+            {
+                HandleDamageMesh(true);
+                isBlinking = false;
+            }
+
+            yield return new WaitForSeconds(_animationSpeed);
+        }
 
         HandleDamageMesh(true);
     }
