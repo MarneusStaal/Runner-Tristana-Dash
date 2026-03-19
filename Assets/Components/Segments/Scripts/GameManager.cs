@@ -87,6 +87,7 @@ public class GameManager : MonoBehaviour
         if (_speed > _targetSpeed + 0.1) _speed -= _accelerationSpeed * Time.deltaTime;
 
         HandleMoveAnimation();
+        HandleSpeedState();
 
         for (int i = 0; i < _instanciatedSegments.Count; i++)
         {
@@ -110,23 +111,44 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void HandleSpeedState()
+    {
+        if (_speed >= _flyingSpeed - 2.5)
+        {
+            RunnerEventSystem.OnSpeedStateChange?.Invoke(SpeedState.Fly);
+            return;
+        }
+        
+        if (_speed >= _runSpeed - 0.5)
+        {
+            RunnerEventSystem.OnSpeedStateChange?.Invoke(SpeedState.Run);
+            return;
+        }
+
+        if (_speed >= _walkSpeed - 0.5)
+        {
+            RunnerEventSystem.OnSpeedStateChange?.Invoke(SpeedState.Walk);
+            return;
+        }
+
+        RunnerEventSystem.OnSpeedStateChange?.Invoke(SpeedState.Stop);
+    }
+
     private void HandleMoveAnimation()
     {
         if (_isJumping || _isFlying) return;
 
         if (_speed < _runSpeed - 0.1f && !_isWalking)
         {
-            Debug.Log("Started Walking");
-
             RunnerEventSystem.OnStartWalking?.Invoke();
+            
             _isWalking = true;
             _isRunning = false;
         }
         else if (_speed >= _runSpeed && !_isRunning)
         {
-            Debug.Log("Started Running");
-
             RunnerEventSystem.OnStartRunning?.Invoke();
+            
             _isWalking = false;
             _isRunning = true;
         }

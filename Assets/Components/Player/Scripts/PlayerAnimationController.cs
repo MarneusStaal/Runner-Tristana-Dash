@@ -171,7 +171,6 @@ public class PlayerAnimationController : MonoBehaviour
 
     private void Run()
     {
-        Debug.Log("Run was called !");
         //_playerAnimator.SetTrigger("Running");
         _playerAnimator.SetBool("IsRunning", true);
         _playerAnimator.SetBool("IsWalking", false);
@@ -180,7 +179,6 @@ public class PlayerAnimationController : MonoBehaviour
 
     private void Walk()
     {
-        Debug.Log("Walk was called !");
         //_playerAnimator.SetTrigger("Walking");
         _playerAnimator.SetBool("IsRunning", false);
         _playerAnimator.SetBool("IsWalking", true);

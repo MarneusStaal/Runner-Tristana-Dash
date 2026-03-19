@@ -17,9 +17,11 @@ public static class RunnerEventSystem
     public static Action OnJumpEnded;
 
     public static Action<SpeedState> OnSpeedChange;
+    public static Action<SpeedState> OnSpeedStateChange;
     public static Action<SpeedState> OnSpeedTargetChange;
 
     public static Action<CollectableType> OnCollectablePickUp;
 
     public static Action<int> OnFuelLevelChange;
+    public static Action<float> OnHordeLevelChange;
 }

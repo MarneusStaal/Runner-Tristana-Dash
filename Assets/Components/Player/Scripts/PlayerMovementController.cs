@@ -240,7 +240,6 @@ public class PlayerMovementController : MonoBehaviour
         RunnerEventSystem.OnSpeedChange?.Invoke(SpeedState.Stop);
         RunnerEventSystem.OnSpeedTargetChange?.Invoke(SpeedState.Stop);
 
-        //yield return new WaitForSeconds(_animationController.DamageAnimationDuration);
         yield return new WaitForSeconds(_flyingOutOfFuelAnimationDuration);
 
         FlyDown();
