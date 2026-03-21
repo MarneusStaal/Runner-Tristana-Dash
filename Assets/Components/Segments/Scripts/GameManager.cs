@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using static UnityEngine.Rendering.HableCurve;
 
@@ -35,6 +36,9 @@ public class GameManager : MonoBehaviour
     private bool _isFlying;
     private bool _isRunning;
 
+    private bool _inGameState;
+    private GameState _gameState;
+
     private void Awake()
     {
         if (Instance == null)
@@ -51,6 +55,8 @@ public class GameManager : MonoBehaviour
         RunnerEventSystem.OnPlayerJump += HandlePlayerJump;
         RunnerEventSystem.OnFlyUp += StartFlying;
         RunnerEventSystem.OnFlyEnd += StopFlying;
+
+        RunnerEventSystem.OnStateChanged += HandleStateChanged;
     }
 
     private void OnDestroy()
@@ -60,6 +66,8 @@ public class GameManager : MonoBehaviour
         RunnerEventSystem.OnPlayerJump -= HandlePlayerJump;
         RunnerEventSystem.OnFlyUp -= StartFlying;
         RunnerEventSystem.OnFlyEnd -= StopFlying;
+
+        RunnerEventSystem.OnStateChanged -= HandleStateChanged;
     }
 
     private void StartFlying() => _isFlying = true;
@@ -81,6 +89,11 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
+        if (!_inGameState)
+        {
+            return;
+        }
+
         SegmentController segment = null;
 
         if (_speed <= _targetSpeed) _speed += _accelerationSpeed * Time.deltaTime;
@@ -214,6 +227,17 @@ public class GameManager : MonoBehaviour
             case SpeedState.Fly: _speed = _flyingSpeed; break;
             default: goto case SpeedState.Stop;
         }
+    }
+
+    private void HandleStateChanged(State newState)
+    {
+        if (newState is not GameState gameState)
+        {
+            _inGameState = false;
+            return;
+        }
+
+        _inGameState = true;
     }
 
 }

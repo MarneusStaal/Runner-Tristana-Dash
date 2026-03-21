@@ -26,7 +26,7 @@ public class HordeController : MonoBehaviour
 
     private void Update()
     {
-        if (_currentHordeLevel >= _maxHordeLevel)
+        if (_currentHordeLevel >= _maxHordeLevel && _hordeCurrentProgression > 0)
         {
             _currentHordeLevel = _maxHordeLevel;
             return;
@@ -34,7 +34,7 @@ public class HordeController : MonoBehaviour
 
         if (_currentHordeLevel <= 0)
         {
-            Debug.Log("Game Over");
+            RunnerEventSystem.OnGameOver?.Invoke();
             return;
         }
 

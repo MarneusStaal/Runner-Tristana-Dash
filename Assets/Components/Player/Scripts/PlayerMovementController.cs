@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 public class PlayerMovementController : MonoBehaviour
@@ -20,6 +21,8 @@ public class PlayerMovementController : MonoBehaviour
     private bool _isJumping = false;
     private bool _isFlying = false;
 
+    private bool _locked = false;
+
     private int _currentLaneIndex = 1;
     private int _currentFlyingLaneIndex = 0;
     //===============================
@@ -32,18 +35,19 @@ public class PlayerMovementController : MonoBehaviour
     private PlayerCommand _inputBuffer = PlayerCommand.Idle;
 
     private PlayerInventoryController _inventoryController;
-    //private PlayerAnimationController _animationController;
 
     private Coroutine _flyingCoroutine = null;
 
     private void Awake()
     {
         RunnerEventSystem.OnFlyingDamage += FlyDown;
+        RunnerEventSystem.OnStateChanged += HandleStateChanged;
     }
 
     private void OnDestroy()
     {
         RunnerEventSystem.OnFlyingDamage -= FlyDown;
+        RunnerEventSystem.OnStateChanged -= HandleStateChanged;
     }
 
     void Start()
@@ -61,11 +65,15 @@ public class PlayerMovementController : MonoBehaviour
         _targetPosition = new Vector3(_lanePositions[_currentLaneIndex].position.x, _flyingPositions[_currentFlyingLaneIndex].position.y, transform.position.z);
 
         _inventoryController = GetComponent<PlayerInventoryController>();
-        //_animationController = GetComponent<PlayerAnimationController>();
     }
 
     private void Update()
     {
+        if (_locked)
+        {
+            return;
+        }
+
         if (_isMoving)
         {
             transform.position = Vector3.MoveTowards(transform.position, _targetPosition, _strafeSpeed * Time.deltaTime);
@@ -256,5 +264,17 @@ public class PlayerMovementController : MonoBehaviour
         _targetPosition.y = _flyingPositions[_currentFlyingLaneIndex].position.y;
 
         StopCoroutine(_flyingCoroutine);
+    }
+
+    private void HandleStateChanged(State newState)
+    {
+        if (newState is not GameState)
+        {
+            _locked = true;
+            StopAllCoroutines();
+            return;
+        }
+
+        _locked = false;
     }
 }

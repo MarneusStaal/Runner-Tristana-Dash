@@ -24,4 +24,8 @@ public static class RunnerEventSystem
 
     public static Action<int> OnFuelLevelChange;
     public static Action<float> OnHordeLevelChange;
+
+    public static Action OnGameOver;
+
+    public static Action<State> OnStateChanged;
 }
