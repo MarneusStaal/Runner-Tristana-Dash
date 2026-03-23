@@ -5,8 +5,6 @@ using UnityEngine;
 
 public class MainMenuGameManager : MonoBehaviour
 {
-    public static MainMenuGameManager Instance {  get; private set; }
-
     // ==========================================
 
     [Header("Segments")]
@@ -26,14 +24,7 @@ public class MainMenuGameManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+
     }
 
     // ==========================================
@@ -46,8 +37,6 @@ public class MainMenuGameManager : MonoBehaviour
     private void Init()
     {
         GenerateBaseSegments();
-        RunnerEventSystem.OnSpeedStateChange?.Invoke(SpeedState.Run);
-        RunnerEventSystem.OnStartRunning?.Invoke();
     }
 
     private void Update()

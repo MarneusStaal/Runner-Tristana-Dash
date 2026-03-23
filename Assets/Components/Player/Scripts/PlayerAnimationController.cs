@@ -27,7 +27,7 @@ public class PlayerAnimationController : MonoBehaviour
     private void OnDestroy()
     {
         RunnerEventSystem.OnPlayerJump -= Jump;
-        RunnerEventSystem.OnFlyingDamage -= HandleOutOfFuel;
+        RunnerEventSystem.OnPlayerOutOfFuel -= HandleOutOfFuel;
         RunnerEventSystem.OnFlyingDamage += HandleFlyingDamage;
         RunnerEventSystem.OnFlyDown -= FlyDown;
         RunnerEventSystem.OnFlyUp -= FlyUp;

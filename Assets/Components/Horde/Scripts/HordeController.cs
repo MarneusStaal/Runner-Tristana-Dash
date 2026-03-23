@@ -14,18 +14,27 @@ public class HordeController : MonoBehaviour
     [SerializeField] private float _runStateProgression = -2f;
     [SerializeField] private float _flyStateProgression = 4f;
 
+    private bool _locked = false;
+
     private void Awake()
     {
         RunnerEventSystem.OnSpeedStateChange += HandleSpeedStateChange;
+        RunnerEventSystem.OnStateChanged += HandleStateChanged;
     }
 
     private void OnDestroy()
     {
         RunnerEventSystem.OnSpeedStateChange -= HandleSpeedStateChange;
+        RunnerEventSystem.OnStateChanged -= HandleStateChanged;
     }
 
     private void Update()
     {
+        if (_locked)
+        {
+            return;
+        }
+
         if (_currentHordeLevel >= _maxHordeLevel && _hordeCurrentProgression > 0)
         {
             _currentHordeLevel = _maxHordeLevel;
@@ -52,5 +61,17 @@ public class HordeController : MonoBehaviour
             case SpeedState.Fly: _hordeCurrentProgression = _flyStateProgression; break;
             default: goto case SpeedState.Stop;
         }
+    }
+
+    private void HandleStateChanged(State newState)
+    {
+        if (newState is not GameState)
+        {
+            _locked = true;
+            StopAllCoroutines();
+            return;
+        }
+
+        _locked = false;
     }
 }

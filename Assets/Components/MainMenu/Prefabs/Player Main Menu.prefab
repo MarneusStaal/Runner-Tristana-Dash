@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2850134572478629526, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
       propertyPath: m_Name
-      value: Player Variant
+      value: Player Main Menu
       objectReference: {fileID: 0}
     - target: {fileID: 3728562973671218594, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
       propertyPath: _jumpDuration
@@ -66,7 +66,44 @@ PrefabInstance:
     - {fileID: 4701545252845489867, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
     - {fileID: 1988926159320312926, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
     - {fileID: 7306375398813810734, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
-    m_RemovedGameObjects: []
+    - {fileID: 2551933287903223061, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+    - {fileID: 406359595143255271, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 2567985308474712887, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+    - {fileID: 8384723556885501074, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+    - {fileID: 7475338053585573095, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+    - {fileID: 4830948016921381074, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+    - {fileID: 8776068152149433957, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7797141825565225409, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5895830622449399219}
   m_SourcePrefab: {fileID: 100100000, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+--- !u!1 &3483373958790872341 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7797141825565225409, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+  m_PrefabInstance: {fileID: 6657003067477888212}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &5895830622449399219
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3483373958790872341}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: be9ad3f4b1488544ebf2cc4a7f8e740c, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

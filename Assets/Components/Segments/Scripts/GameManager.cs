@@ -7,7 +7,7 @@ using static UnityEngine.Rendering.HableCurve;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance {  get; private set; }
+   // public static GameManager Instance {  get; private set; }
 
     // ==========================================
 
@@ -41,14 +41,14 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance == null)
+        /*if (Instance == null)
         {
             Instance = this;
         }
         else
         {
             Destroy(gameObject);
-        }
+        }*/
 
         RunnerEventSystem.OnSpeedTargetChange += SetTargetSpeed;
         RunnerEventSystem.OnSpeedChange += SetSpeed;

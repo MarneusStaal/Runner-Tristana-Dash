@@ -17,4 +17,14 @@ public static class SceneLoaderService
     {
         SceneManager.LoadScene("GameOver", LoadSceneMode.Additive);
     }
+
+    public static void LoadPauseMenu()
+    {
+        SceneManager.LoadScene("PauseMenu", LoadSceneMode.Additive);
+    }
+
+    public static void UnloadPauseMenu()
+    {
+        SceneManager.UnloadSceneAsync("PauseMenu");
+    }
 }
