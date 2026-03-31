@@ -1,10 +1,17 @@
+using TMPro;
 using UnityEngine;
 
 public class UIMainMenuController : MonoBehaviour
 {
+    [SerializeField] private TMP_Text _bestScoreText;
+    [SerializeField] private TMP_Text _livesText;
+
     private void Start()
     {
+        SaveData save = SaveService.Load();
 
+        _bestScoreText.text = $"Best Score : {save.BestScore}";
+        _livesText.text = $"Lives : {save.Lives}";
     }
 
     public void StartGame()

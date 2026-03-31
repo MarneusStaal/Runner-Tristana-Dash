@@ -21,6 +21,7 @@ public static class RunnerEventSystem
     public static Action<SpeedState> OnSpeedTargetChange;
 
     public static Action<CollectableType> OnCollectablePickUp;
+    public static Action OnCollectableValueChanged;
 
     public static Action<int> OnFuelLevelChange;
     public static Action<float> OnHordeLevelChange;
@@ -28,4 +29,6 @@ public static class RunnerEventSystem
     public static Action OnGameOver;
 
     public static Action<State> OnStateChanged;
+
+    public static Action<SaveData> OnSaveLoaded;
 }

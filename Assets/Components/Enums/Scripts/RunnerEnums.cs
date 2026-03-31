@@ -1,3 +1,4 @@
+// Represent the player moving states
 public enum SpeedState
 {
     Stop,
@@ -6,6 +7,7 @@ public enum SpeedState
     Fly
 }
 
+// The commands the game is able to handle
 public enum PlayerCommand
 {
     Idle,
@@ -16,7 +18,12 @@ public enum PlayerCommand
     Jump
 }
 
+// The different types of objects types you can collect in the game
 public enum CollectableType
 {
-    Fuel
+    Fuel,
+    RedBottle,
+    GreenBottle,
+    BlueBottle,
+    Candle
 }
