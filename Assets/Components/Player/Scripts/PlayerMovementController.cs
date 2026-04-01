@@ -18,6 +18,8 @@ public class PlayerMovementController : MonoBehaviour
     [SerializeField] private float _strafeSpeed = 10f;
     // Duration of the "falling" animation played when the player runs out of fuel mid-flight
     [SerializeField] private float _flyingOutOfFuelAnimationDuration;
+    // The multiplier effect granted by the Red and Green speed potion
+    [SerializeField] private float _speedPotionMultiplier = 2.0f;
 
     //===============================
 
@@ -63,6 +65,7 @@ public class PlayerMovementController : MonoBehaviour
         RunnerEventSystem.OnFlyingDamage += FlyDown;
         // HandleStateChanged is called whenever the game transitions between states (menu, gameplay, etc.)
         RunnerEventSystem.OnStateChanged += HandleStateChanged;
+        RunnerEventSystem.OnSaveLoaded += HandleSaveLoaded;
     }
 
     private void OnDestroy()
@@ -70,6 +73,7 @@ public class PlayerMovementController : MonoBehaviour
         // Always unsubscribe from events on destroy to avoid memory leaks and ghost callbacks
         RunnerEventSystem.OnFlyingDamage -= FlyDown;
         RunnerEventSystem.OnStateChanged -= HandleStateChanged;
+        RunnerEventSystem.OnSaveLoaded -= HandleSaveLoaded;
     }
 
     void Start()
@@ -335,5 +339,12 @@ public class PlayerMovementController : MonoBehaviour
         }
 
         _locked = false;
+    }
+
+    private void HandleSaveLoaded(SaveData save)
+    {
+        if (save.RedGreenPotionActive) _strafeSpeed *= _speedPotionMultiplier;
+
+        RunnerEventSystem.OnSaveLoaded -= HandleSaveLoaded;
     }
 }

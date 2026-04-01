@@ -12,4 +12,8 @@ public class SaveData
     public int BlueBottleCount;
     public int GreenBottleCount;
     public int CandleCount;
+
+    public bool RedGreenPotionActive;
+    public bool RedBluePotionActive;
+    public bool RedCandlePotionActive;
 }

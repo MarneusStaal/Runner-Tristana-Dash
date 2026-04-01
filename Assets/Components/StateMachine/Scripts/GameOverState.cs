@@ -25,6 +25,10 @@ public class GameOverState : State
     {
         SaveData save = SaveService.Load();
 
+        save.RedGreenPotionActive = false;
+        save.RedBluePotionActive = false;
+        save.RedCandlePotionActive = false;
+
         save.scores.Add(GameManager.Instance.Score);
 
         int tempBest = 0;

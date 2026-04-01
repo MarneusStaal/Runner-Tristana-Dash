@@ -27,4 +27,14 @@ public static class SceneLoaderService
     {
         SceneManager.UnloadSceneAsync("PauseMenu");
     }
+
+    public static void LoadAlchemyMenu()
+    {
+        SceneManager.LoadScene("AlchemyMenu", LoadSceneMode.Additive);
+    }
+
+    public static void UnloadAlchemyMenu()
+    {
+        SceneManager.UnloadSceneAsync("AlchemyMenu");
+    }
 }

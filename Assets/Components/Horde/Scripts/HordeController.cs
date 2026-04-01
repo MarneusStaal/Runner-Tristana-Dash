@@ -30,6 +30,8 @@ public class HordeController : MonoBehaviour
     // Total malus for the horde progression
     [SerializeField] private float _hordeMeterTotalAdditive = 0f;
 
+    [SerializeField] private float _redCandlePotionBonus = 4f;
+
     // Add a malus to progression every timer seconds
     [SerializeField] private float _hordeMeterAdditiveTimer = 30f;
     // Used to count time up to _hordeMeterAdditiveTimer
@@ -44,6 +46,7 @@ public class HordeController : MonoBehaviour
         RunnerEventSystem.OnSpeedStateChange += HandleSpeedStateChange;
         // Lock/unlock the controller whenever the game state changes
         RunnerEventSystem.OnStateChanged += HandleStateChanged;
+        RunnerEventSystem.OnSaveLoaded += HandleSaveLoaded;
     }
 
     private void OnDestroy()
@@ -51,6 +54,7 @@ public class HordeController : MonoBehaviour
         // Unsubscribe to prevent ghost callbacks after the object is destroyed
         RunnerEventSystem.OnSpeedStateChange -= HandleSpeedStateChange;
         RunnerEventSystem.OnStateChanged -= HandleStateChanged;
+        RunnerEventSystem.OnSaveLoaded -= HandleSaveLoaded;
     }
 
     private void Update()
@@ -123,5 +127,12 @@ public class HordeController : MonoBehaviour
         }
 
         _locked = false;
+    }
+
+    private void HandleSaveLoaded(SaveData save)
+    {
+        if (save.RedCandlePotionActive) _hordeMeterTotalAdditive = _redCandlePotionBonus;
+
+        RunnerEventSystem.OnSaveLoaded -= HandleSaveLoaded;
     }
 }

@@ -29,4 +29,9 @@ public class UIMainMenuController : MonoBehaviour
     Application.OpenURL("about:blank");
 #endif
     }
+
+    public void GoToCraftMenu()
+    {
+        SceneLoaderService.LoadAlchemyMenu();
+    }
 }

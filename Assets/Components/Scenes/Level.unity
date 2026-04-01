@@ -2859,12 +2859,13 @@ MonoBehaviour:
   _currentHordeLevel: 50
   _maxHordeLevel: 100
   _hordeCurrentProgression: 0
-  _stopStateProgression: -8
-  _walkStateProgression: -4
+  _stopStateProgression: -6
+  _walkStateProgression: -3
   _runStateProgression: 0
-  _flyStateProgression: 5
+  _flyStateProgression: 4
   _hordeMeterAdditive: -1
   _hordeMeterTotalAdditive: 0
+  _redCandlePotionBonus: 2
   _hordeMeterAdditiveTimer: 30
   _timer: 0
 --- !u!1 &1152869000
@@ -3729,6 +3730,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2551933287903223061, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+      propertyPath: _blinkAnimationSpeed
+      value: 0.1
+      objectReference: {fileID: 0}
     - target: {fileID: 2850134572478629526, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
       propertyPath: m_Name
       value: Player
@@ -3736,6 +3741,10 @@ PrefabInstance:
     - target: {fileID: 3728562973671218594, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
       propertyPath: _jumpDuration
       value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3728562973671218594, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+      propertyPath: _speedPotionMultiplier
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -12,6 +12,10 @@ public class PlayerInventoryController : MonoBehaviour
     private int _lives = 0;
     public int Lives => _lives;
 
+    private bool _redBluePotionActive = false;
+    [SerializeField] private float _redBluePotionTimer = 15f;
+    private float _timer = 0f;
+
     // Upper bound for the fuel value; fuel cannot be added beyond this amount
     [SerializeField] private int _maxFuel = 10;
 
@@ -133,16 +137,29 @@ public class PlayerInventoryController : MonoBehaviour
         RunnerEventSystem.OnSaveLoaded -= HandleSaveLoaded;
     }
 
+    private void Update()
+    {
+        if (!_redBluePotionActive) return;
+
+        _timer += Time.deltaTime;
+
+        if (_timer > _redBluePotionTimer)
+        {
+            _redBluePotionActive = false;
+            _timer = 0;
+        }
+    }
+
     // Called when the player picks up any collectable; increments the correct collectable type in the inventory
     private void HandleCollectablePickUp(CollectableType type)
     {
         switch (type)
         {
-            case CollectableType.Fuel: Fuel++; break;
-            case CollectableType.RedBottle: RedBottleCount++; break;
-            case CollectableType.GreenBottle: GreenBottleCount++; break;
-            case CollectableType.BlueBottle: BlueBottleCount++; break;
-            case CollectableType.Candle: CandleCount++; break;
+            case CollectableType.Fuel: Fuel = _redBluePotionActive ? Fuel + 2 : Fuel + 1; break;
+            case CollectableType.RedBottle: RedBottleCount = _redBluePotionActive ? RedBottleCount + 2 : RedBottleCount + 1; break;
+            case CollectableType.GreenBottle: GreenBottleCount = _redBluePotionActive ? GreenBottleCount + 2 : GreenBottleCount + 1; break;
+            case CollectableType.BlueBottle: BlueBottleCount = _redBluePotionActive ? BlueBottleCount + 2 : BlueBottleCount + 1; break;
+            case CollectableType.Candle: CandleCount = _redBluePotionActive ? CandleCount + 2 : CandleCount + 1; break;
             default: break;
         }
     }
@@ -154,5 +171,7 @@ public class PlayerInventoryController : MonoBehaviour
         GreenBottleCount = data.GreenBottleCount;
         CandleCount = data.CandleCount;
         _lives = data.Lives;
+
+        if (data.RedBluePotionActive) _redBluePotionActive = true;
     }
 }
