@@ -11,8 +11,6 @@ public static class SaveService
     {
         string json = JsonUtility.ToJson(data);
         File.WriteAllText(FilePath, json);
-
-        //Debug.Log("Data successfully saved at: " + FilePath);
     }
 
     public static SaveData Load()

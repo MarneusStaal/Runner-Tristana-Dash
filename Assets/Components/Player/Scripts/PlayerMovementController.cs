@@ -2,75 +2,144 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+/// <summary>
+/// Controls all player movement in the runner:
+/// lateral lane-switching, jumping, and vertical flying.
+///
+/// Movement is driven by Unity's Input System through buffered commands,
+/// meaning input is stored each frame and consumed only when the player
+/// is in a valid state to act on it (not mid-strafe, not mid-jump).
+///
+/// Flying drains fuel over time via <see cref="FlyingCoroutine"/>; the player
+/// is forced back to the ground when fuel runs out.
+/// </summary>
 public class PlayerMovementController : MonoBehaviour
 {
+    // ── Input ────────────────────────────────────────────────────────────────
+
     [Header("Controls")]
-    // Input action references bound via the Unity Input System (assigned in Inspector)
+    /// <summary>Input action that drives horizontal/vertical movement (assigned in Inspector).</summary>
     [SerializeField] private InputActionReference _moveAction;
+
+    /// <summary>Input action that triggers a jump (assigned in Inspector).</summary>
     [SerializeField] private InputActionReference _jumpAction;
 
+    // ── Movement Config ──────────────────────────────────────────────────────
+
     [Header("Movement")]
-    // World-space transforms defining the horizontal lane positions (e.g. left, center, right)
+    /// <summary>
+    /// World-space transforms marking each horizontal lane position
+    /// (e.g. index 0 = left, 1 = center, 2 = right).
+    /// </summary>
     [SerializeField] private Transform[] _lanePositions;
-    // World-space transforms defining the vertical flying positions (ground level, flying level, etc.)
+
+    /// <summary>
+    /// World-space transforms marking each vertical flying level
+    /// (index 0 = ground, higher indices = airborne heights).
+    /// </summary>
     [SerializeField] private Transform[] _flyingPositions;
-    // How fast the player slides between lanes or flying heights
+
+    /// <summary>Units per second used by MoveTowards when strafing between lanes or flying heights.</summary>
     [SerializeField] private float _strafeSpeed = 10f;
-    // Duration of the "falling" animation played when the player runs out of fuel mid-flight
+
+    /// <summary>
+    /// How long the out-of-fuel falling animation plays before <see cref="FlyDown"/> is called.
+    /// Gives animators time to show the drop before snapping the player to the ground.
+    /// </summary>
     [SerializeField] private float _flyingOutOfFuelAnimationDuration;
-    // The multiplier effect granted by the Red and Green speed potion
+
+    /// <summary>
+    /// Multiplier applied to <see cref="_strafeSpeed"/> when the red/green speed potion is active.
+    /// Loaded from save data in <see cref="HandleSaveLoaded"/>.
+    /// </summary>
     [SerializeField] private float _speedPotionMultiplier = 2.0f;
 
-    //===============================
+    // ── Runtime State ────────────────────────────────────────────────────────
 
-    // The world position the player is currently interpolating towards
+    /// <summary>The world position the player is currently interpolating towards via MoveTowards.</summary>
     private Vector3 _targetPosition;
-    // True while the player is sliding between lanes or flying heights
+
+    /// <summary>True while the player is sliding between lanes or flying heights.</summary>
     private bool _isMoving = false;
-    // True while the jump coroutine is running
+
+    /// <summary>True while <see cref="JumpCoroutine"/> is running.</summary>
     private bool _isJumping = false;
-    // True while the player is in the air (flying mode active)
+
+    /// <summary>True while the player is airborne in flying mode (not a jump — fuel-based flight).</summary>
     private bool _isFlying = false;
 
-    // When true, all input and movement is suspended (e.g. during menus or cutscenes)
+    /// <summary>
+    /// When true, all input processing and movement is suspended.
+    /// Set by <see cref="HandleStateChanged"/> whenever the game leaves a <see cref="GameState"/>
+    /// (e.g. entering a menu, death screen, or cutscene).
+    /// </summary>
     private bool _locked = false;
 
-    // Index into _lanePositions for the player's current horizontal lane (default: center)
+    /// <summary>
+    /// Index into <see cref="_lanePositions"/> for the player's current horizontal lane.
+    /// Defaults to 1 (center lane).
+    /// </summary>
     private int _currentLaneIndex = 1;
-    // Index into _flyingPositions for the player's current vertical level (0 = ground)
+
+    /// <summary>
+    /// Index into <see cref="_flyingPositions"/> for the player's current vertical level.
+    /// 0 means the player is on the ground; any higher value means airborne.
+    /// </summary>
     private int _currentFlyingLaneIndex = 0;
 
-    //===============================
+    // ── Jump Config ──────────────────────────────────────────────────────────
 
     [Header("Jump parameters")]
-    // Total time the jump arc takes from takeoff to landing
+    /// <summary>Total time in seconds from jump takeoff to landing.</summary>
     [SerializeField] private float _jumpDuration = 1f;
-    // Maximum height reached at the apex of the jump
+
+    /// <summary>Maximum height (world units) reached at the apex of the jump arc.</summary>
     [SerializeField] private float _jumpHeight = 2f;
-    // Animation curve that shapes the jump arc (evaluated 0→1 over _jumpDuration)
+
+    /// <summary>
+    /// Animation curve shaping the jump arc, evaluated from 0 to 1 over <see cref="_jumpDuration"/>.
+    /// A value of 1 on the curve equals <see cref="_jumpHeight"/> world units above the ground.
+    /// </summary>
     [SerializeField] private AnimationCurve _jumpCurve;
 
-    // Stores the last player command received so it can be processed on the next valid frame
+    // ── Misc References ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Stores the most recent unprocessed player command so it can be
+    /// consumed on the next frame when the player is in a valid state.
+    /// Prevents input from being silently dropped during a strafe or jump.
+    /// </summary>
     private PlayerCommand _inputBuffer = PlayerCommand.Idle;
 
-    // Reference to the inventory controller used to check/consume fuel during flight
+    /// <summary>
+    /// Cached reference to the sibling inventory controller, used to
+    /// read and consume fuel during flight.
+    /// </summary>
     private PlayerInventoryController _inventoryController;
 
-    // Reference to the active flying coroutine, kept so it can be stopped early (e.g. on FlyDown)
+    /// <summary>
+    /// Handle to the active <see cref="FlyingCoroutine"/> so it can be
+    /// stopped early (e.g. when <see cref="FlyDown"/> is called manually
+    /// or via damage before fuel runs out).
+    /// </summary>
     private Coroutine _flyingCoroutine = null;
+
+    // ── Unity Lifecycle ──────────────────────────────────────────────────────
 
     private void Awake()
     {
-        // Subscribe to game events; FlyDown is called when the player takes damage while flying
+        // FlyDown is called when the player takes damage while airborne
         RunnerEventSystem.OnFlyingDamage += FlyDown;
-        // HandleStateChanged is called whenever the game transitions between states (menu, gameplay, etc.)
+        // HandleStateChanged locks/unlocks movement on game state transitions
         RunnerEventSystem.OnStateChanged += HandleStateChanged;
+        // HandleSaveLoaded restores movement modifiers from a loaded save
         RunnerEventSystem.OnSaveLoaded += HandleSaveLoaded;
     }
 
     private void OnDestroy()
     {
-        // Always unsubscribe from events on destroy to avoid memory leaks and ghost callbacks
+        // Unsubscribe to prevent ghost callbacks if this object is destroyed
+        // (e.g. between scene loads)
         RunnerEventSystem.OnFlyingDamage -= FlyDown;
         RunnerEventSystem.OnStateChanged -= HandleStateChanged;
         RunnerEventSystem.OnSaveLoaded -= HandleSaveLoaded;
@@ -78,18 +147,14 @@ public class PlayerMovementController : MonoBehaviour
 
     void Start()
     {
-        // Register input callbacks for move and jump actions
+        // Register input callbacks; null-checks guard against missing Inspector assignments
         if (_moveAction != null)
-        {
             _moveAction.action.performed += HandleMoveCommand;
-        }
 
         if (_jumpAction != null)
-        {
             _jumpAction.action.performed += HandleJumpCommand;
-        }
 
-        // Set the initial target position: center lane, ground-level flying index
+        // Snap to the center lane at ground level as the default starting position
         _targetPosition = new Vector3(
             _lanePositions[_currentLaneIndex].position.x,
             _flyingPositions[_currentFlyingLaneIndex].position.y,
@@ -101,222 +166,244 @@ public class PlayerMovementController : MonoBehaviour
 
     private void Update()
     {
-        // Skip all movement logic while the controller is locked (non-gameplay state)
-        if (_locked)
-        {
-            return;
-        }
+        // All movement and input processing is suppressed outside gameplay states
+        if (_locked) return;
 
         if (_isMoving)
         {
-            // Smoothly move towards the target position at the configured strafe speed
-            transform.position = Vector3.MoveTowards(transform.position, _targetPosition, _strafeSpeed * Time.deltaTime);
+            // Interpolate toward the target position at a fixed units-per-second rate
+            transform.position = Vector3.MoveTowards(
+                transform.position, _targetPosition, _strafeSpeed * Time.deltaTime
+            );
 
-            // Once the player reaches the target, clear the moving flag
-            if (transform.position == _targetPosition) _isMoving = false;
+            // Clear the moving flag once the player has fully arrived at the target
+            if (transform.position == _targetPosition)
+                _isMoving = false;
 
-            // If we just finished a lateral move while flying and have reached the ground height,
-            // trigger the landing sequence
-            if (!_isMoving && transform.position.y == _flyingPositions[0].position.y && _isFlying) HandleDescent();
+            // If we just finished moving while flying AND we've reached ground height,
+            // the player has descended — trigger the landing sequence
+            if (!_isMoving && transform.position.y == _flyingPositions[0].position.y && _isFlying)
+                HandleDescent();
         }
         else if (!_isJumping)
         {
-            // Process any buffered input command when the player is free (not moving or jumping)
+            // The player is stationary and not jumping: safe to consume buffered input
             HandleInputBufferCommands();
         }
     }
 
-    // Called when the player lands after flying (either manually or after running out of fuel)
+    // ── State Handlers ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called once the player has fully descended to ground level after flying.
+    /// Resets flight state and restores the normal run speed.
+    /// </summary>
     private void HandleDescent()
     {
         _isFlying = false;
-        // Restore running speed and notify the rest of the game that flight has ended
         RunnerEventSystem.OnSpeedTargetChange?.Invoke(SpeedState.Run);
         RunnerEventSystem.OnStartRunning?.Invoke();
         RunnerEventSystem.OnFlyEnd?.Invoke();
     }
 
-    // Reads the input buffer and dispatches the appropriate action, then clears the buffer
+    /// <summary>
+    /// Reads and dispatches the buffered input command, then clears the buffer.
+    /// Only called when the player is neither moving nor jumping.
+    /// </summary>
     private void HandleInputBufferCommands()
     {
         switch (_inputBuffer)
         {
-            case PlayerCommand.Idle: break;                            // Nothing to process
-            case PlayerCommand.Jump: HandleJump(); break;              // Initiate a jump
-            default: HandleMove(_inputBuffer); break;  // Initiate a lane/fly move
+            case PlayerCommand.Idle: break;                  // Nothing queued
+            case PlayerCommand.Jump: HandleJump(); break;    // Attempt a jump
+            default: HandleMove(_inputBuffer); break;         // Attempt a lane or fly move
         }
 
+        // Always clear the buffer after processing so stale commands don't repeat
         _inputBuffer = PlayerCommand.Idle;
     }
 
-    // Called by the Input System when the jump action is performed; buffers the command
+    // ── Input Callbacks ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Registered with the jump <see cref="InputActionReference"/>.
+    /// Buffers a jump command for processing on the next eligible Update frame.
+    /// </summary>
     private void HandleJumpCommand(InputAction.CallbackContext obj)
     {
         _inputBuffer = PlayerCommand.Jump;
     }
 
-    // Starts the jump coroutine if the player is in a valid state to jump
-    private void HandleJump()
-    {
-        // Cannot jump while already jumping, mid-strafe, or airborne in flying mode
-        if (!_isJumping && !_isMoving && !_isFlying)
-        {
-            StartCoroutine(JumpCoroutine());
-        }
-    }
-
-    // Animates the jump arc using the configured curve and height over _jumpDuration seconds
-    private IEnumerator JumpCoroutine()
-    {
-        // Notify other systems (e.g. animator, obstacle spawner) that a jump has started
-        RunnerEventSystem.OnPlayerJump?.Invoke(_jumpDuration);
-
-        _isJumping = true;
-
-        float jumpTimer = 0f;
-
-        while (jumpTimer < _jumpDuration)
-        {
-            if (!_locked)
-            {
-                jumpTimer += Time.deltaTime;
-                float normalizedTime = jumpTimer / _jumpDuration; // 0 at start, 1 at end
-
-                // Sample the curve to get the current height offset, scaled by _jumpHeight
-                float targetHeight = (_jumpCurve.Evaluate(normalizedTime) * _jumpHeight);
-                Vector3 targetPosition = new Vector3(transform.position.x, targetHeight, transform.position.z);
-
-                transform.position = targetPosition;
-            }
-            
-            yield return new WaitForEndOfFrame();
-        }
-
-        _isJumping = false;
-    }
-
-    // Called by the Input System when the move action is performed; buffers the direction as a command
+    /// <summary>
+    /// Registered with the move <see cref="InputActionReference"/>.
+    /// Maps the raw 2D input vector to a directional <see cref="PlayerCommand"/>
+    /// and stores it in the buffer.
+    /// Horizontal axis → lane change; vertical axis → fly up/down.
+    /// </summary>
     private void HandleMoveCommand(InputAction.CallbackContext obj)
     {
         Vector2 moveDirection = obj.ReadValue<Vector2>();
 
-        // Horizontal input maps to left/right lane changes
         if (moveDirection.x != 0)
         {
-            if (moveDirection.x > 0) _inputBuffer = PlayerCommand.MoveRight;
-            else _inputBuffer = PlayerCommand.MoveLeft;
+            _inputBuffer = moveDirection.x > 0
+                ? PlayerCommand.MoveRight
+                : PlayerCommand.MoveLeft;
         }
 
-        // Vertical input maps to flying up/down (only relevant in flying mode)
+        // Vertical input overrides horizontal if both are non-zero
+        // (the last assignment wins, so vertical takes priority)
         if (moveDirection.y != 0)
         {
-            if (moveDirection.y > 0) _inputBuffer = PlayerCommand.MoveUp;
-            else _inputBuffer = PlayerCommand.MoveDown;
+            _inputBuffer = moveDirection.y > 0
+                ? PlayerCommand.MoveUp
+                : PlayerCommand.MoveDown;
         }
     }
 
-    // Dispatches a move command to either lateral or vertical (fly) movement handlers
+    // ── Movement Dispatch ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Initiates a jump if the player is on the ground and not already jumping or strafing.
+    /// </summary>
+    private void HandleJump()
+    {
+        // Jumping while mid-strafe or airborne is intentionally blocked
+        if (!_isJumping && !_isMoving && !_isFlying)
+            StartCoroutine(JumpCoroutine());
+    }
+
+    /// <summary>
+    /// Routes a directional command to the appropriate lateral or vertical handler.
+    /// Ignored if the player is already transitioning.
+    /// </summary>
     private void HandleMove(PlayerCommand command)
     {
-        // Ignore move commands while already transitioning or mid-jump
-        if (!_isMoving && !_isJumping)
+        if (_isMoving || _isJumping) return;
+
+        switch (command)
         {
-            switch (command)
-            {
-                case PlayerCommand.MoveRight: HandleLateralMovement(Vector2.right); break;
-                case PlayerCommand.MoveLeft: HandleLateralMovement(Vector2.left); break;
-                case PlayerCommand.MoveUp: HandleFlyMovement(Vector2.up); break;
-                case PlayerCommand.MoveDown: HandleFlyMovement(Vector2.down); break;
-                default: break;
-            }
+            case PlayerCommand.MoveRight: HandleLateralMovement(Vector2.right); break;
+            case PlayerCommand.MoveLeft: HandleLateralMovement(Vector2.left); break;
+            case PlayerCommand.MoveUp: HandleFlyMovement(Vector2.up); break;
+            case PlayerCommand.MoveDown: HandleFlyMovement(Vector2.down); break;
+            default: break;
         }
     }
 
-    // Moves the player one lane to the left or right, clamped to the available lanes
+    // ── Movement Handlers ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Moves the player one lane left or right, clamped to the available lane array.
+    /// Sets <see cref="_isMoving"/> and updates <see cref="_targetPosition"/> for
+    /// <see cref="Update"/> to interpolate toward.
+    /// </summary>
     private void HandleLateralMovement(Vector2 moveDirection)
     {
         if (moveDirection.x > 0)
         {
-            // Move right: only if not already on the rightmost lane
+            // Move right — guard against stepping past the last lane
             if (_currentLaneIndex < _lanePositions.Length - 1)
             {
                 _isMoving = true;
                 _currentLaneIndex++;
-                _targetPosition = new Vector3(_lanePositions[_currentLaneIndex].position.x, transform.position.y, transform.position.z);
+                _targetPosition = new Vector3(
+                    _lanePositions[_currentLaneIndex].position.x,
+                    transform.position.y,
+                    transform.position.z
+                );
             }
         }
         else
         {
-            // Move left: only if not already on the leftmost lane
+            // Move left — guard against stepping before the first lane
             if (_currentLaneIndex > 0)
             {
                 _isMoving = true;
                 _currentLaneIndex--;
-                _targetPosition = new Vector3(_lanePositions[_currentLaneIndex].position.x, transform.position.y, transform.position.z);
+                _targetPosition = new Vector3(
+                    _lanePositions[_currentLaneIndex].position.x,
+                    transform.position.y,
+                    transform.position.z
+                );
             }
         }
     }
 
-    // Handles vertical movement: initiates FlyUp when pressing up from ground, FlyDown when pressing down in the air
+    /// <summary>
+    /// Handles vertical input: initiates <see cref="FlyUp"/> when pressing up from the
+    /// ground, or <see cref="FlyDown"/> when pressing down while airborne.
+    /// </summary>
     private void HandleFlyMovement(Vector2 moveDirection)
     {
         if (moveDirection.y > 0)
         {
-            // Can only fly up from the ground level (index 0)
+            // FlyUp is only available from ground level (index 0)
             if (_currentFlyingLaneIndex == 0)
-            {
                 FlyUp();
-            }
         }
         else if (_currentFlyingLaneIndex > 0)
         {
-            // Can only fly down if currently airborne
+            // FlyDown is only valid while already airborne
             FlyDown();
         }
     }
 
-    // Launches the player into the air if they have fuel; starts the fuel-drain coroutine
+    // ── Flight ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Launches the player into the air if they have fuel remaining.
+    /// Switches to flying speed and starts the fuel-drain coroutine.
+    /// </summary>
     private void FlyUp()
     {
-        if (_inventoryController.Fuel > 0)
-        {
-            _isMoving = true;
-            _isFlying = true;
+        if (_inventoryController.Fuel <= 0) return;
 
-            // Switch to flying speed
-            RunnerEventSystem.OnSpeedTargetChange?.Invoke(SpeedState.Fly);
+        _isMoving = true;
+        _isFlying = true;
 
-            _currentFlyingLaneIndex++;
-            _targetPosition.y = _flyingPositions[_currentFlyingLaneIndex].position.y;
+        RunnerEventSystem.OnSpeedTargetChange?.Invoke(SpeedState.Fly);
 
-            // Start draining fuel over time; store the reference so it can be cancelled
-            _flyingCoroutine = StartCoroutine(FlyingCoroutine());
-        }
+        _currentFlyingLaneIndex++;
+        _targetPosition.y = _flyingPositions[_currentFlyingLaneIndex].position.y;
+
+        // Store the coroutine reference so it can be cancelled early by FlyDown
+        _flyingCoroutine = StartCoroutine(FlyingCoroutine());
     }
 
-    // Drains fuel every second while the player is flying; triggers landing sequence when empty
+    /// <summary>
+    /// Drains one unit of fuel per second while the player is airborne.
+    /// When fuel reaches zero, stops the runner and waits for the out-of-fuel
+    /// animation before calling <see cref="FlyDown"/>.
+    /// </summary>
     private IEnumerator FlyingCoroutine()
     {
         RunnerEventSystem.OnFlyUp?.Invoke();
 
         while (_inventoryController.Fuel > 0)
         {
-             if (!_locked) _inventoryController.Fuel -= 1;
+            // Only drain fuel when the game is unpaused/unlocked
+            if (!_locked) _inventoryController.Fuel -= 1;
             yield return new WaitForSeconds(1);
         }
 
-        // Fuel depleted: notify the game and pause the runner before the fall animation plays
+        // Fuel exhausted: halt the runner and broadcast the event
+        // so other systems (UI, audio) can react before the fall plays
         RunnerEventSystem.OnPlayerOutOfFuel?.Invoke();
         RunnerEventSystem.OnSpeedChange?.Invoke(SpeedState.Stop);
         RunnerEventSystem.OnSpeedTargetChange?.Invoke(SpeedState.Stop);
 
-        // Wait for the out-of-fuel animation before actually descending
+        // Give the out-of-fuel animation time to finish before descending
         yield return new WaitForSeconds(_flyingOutOfFuelAnimationDuration);
 
         FlyDown();
     }
 
-    // Brings the player back to the ground level and stops the fuel-drain coroutine
+    /// <summary>
+    /// Returns the player to the ground level and cancels the fuel-drain coroutine.
+    /// Can be triggered manually (player input), by damage (<see cref="RunnerEventSystem.OnFlyingDamage"/>),
+    /// or automatically when fuel runs out.
+    /// </summary>
     private void FlyDown()
     {
         RunnerEventSystem.OnFlyDown?.Invoke();
@@ -325,26 +412,76 @@ public class PlayerMovementController : MonoBehaviour
         _currentFlyingLaneIndex--;
         _targetPosition.y = _flyingPositions[_currentFlyingLaneIndex].position.y;
 
-        // Cancel the flying coroutine (prevents double FlyDown calls or continued fuel drain)
-        StopCoroutine(_flyingCoroutine);
+        // Stop the coroutine to prevent a second FlyDown call or continued fuel drain
+        // after the player has already started descending
+        if (_flyingCoroutine != null)
+            StopCoroutine(_flyingCoroutine);
     }
 
-    // Responds to game state changes: locks movement during non-gameplay states (menus, death, etc.)
-    private void HandleStateChanged(State newState)
-    {       
-        if (newState is not GameState)
+    // ── Jump ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Animates a parabolic jump using the configured <see cref="_jumpCurve"/>,
+    /// <see cref="_jumpHeight"/>, and <see cref="_jumpDuration"/>.
+    /// The jump is paused when the controller is locked (e.g. game paused)
+    /// and resumes automatically when unlocked.
+    /// </summary>
+    private IEnumerator JumpCoroutine()
+    {
+        RunnerEventSystem.OnPlayerJump?.Invoke(_jumpDuration);
+
+        _isJumping = true;
+        float jumpTimer = 0f;
+
+        while (jumpTimer < _jumpDuration)
         {
-            _locked = true;
-            return;
+            if (!_locked)
+            {
+                jumpTimer += Time.deltaTime;
+
+                // Normalise 0→1 so the curve can be authored independently of duration
+                float normalizedTime = jumpTimer / _jumpDuration;
+
+                // Curve output (0–1) scaled by _jumpHeight gives the current Y offset
+                float targetHeight = _jumpCurve.Evaluate(normalizedTime) * _jumpHeight;
+
+                transform.position = new Vector3(
+                    transform.position.x,
+                    targetHeight,
+                    transform.position.z
+                );
+            }
+
+            yield return new WaitForEndOfFrame();
         }
 
-        _locked = false;
+        _isJumping = false;
     }
 
+    // ── Event Handlers ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Locks movement whenever the game leaves a <see cref="GameState"/>
+    /// (e.g. transitions to a menu, pause, or death screen),
+    /// and unlocks it when a <see cref="GameState"/> is entered.
+    /// </summary>
+    private void HandleStateChanged(State newState)
+    {
+        _locked = newState is not GameState;
+    }
+
+    /// <summary>
+    /// Called once when a save file is loaded.
+    /// If the red/green speed potion was active at save time, applies the
+    /// speed multiplier to <see cref="_strafeSpeed"/>.
+    /// Unsubscribes immediately after — this only needs to run once per load.
+    /// </summary>
     private void HandleSaveLoaded(SaveData save)
     {
-        if (save.RedGreenPotionActive) _strafeSpeed *= _speedPotionMultiplier;
+        if (save.RedGreenPotionActive)
+            _strafeSpeed *= _speedPotionMultiplier;
 
+        // One-shot: unsubscribe so subsequent save-loads don't stack the multiplier
         RunnerEventSystem.OnSaveLoaded -= HandleSaveLoaded;
     }
 }
