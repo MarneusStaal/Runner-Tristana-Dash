@@ -24,13 +24,13 @@ public class PlayerAnimationController : MonoBehaviour
     private void Awake()
     {
         // Subscribe to all gameplay events that require an animation response
-        RunnerEventSystem.OnPlayerJump += Jump;
-        RunnerEventSystem.OnPlayerOutOfFuel += HandleOutOfFuel;
-        RunnerEventSystem.OnFlyingDamage += HandleFlyingDamage;
-        RunnerEventSystem.OnFlyDown += FlyDown;
-        RunnerEventSystem.OnFlyUp += FlyUp;
-        RunnerEventSystem.OnStartRunning += Run;
-        RunnerEventSystem.OnStartWalking += Walk;
+        RunnerEventSystem.OnPlayerJump += Jump; // The player is jumping
+        RunnerEventSystem.OnPlayerOutOfFuel += HandleOutOfFuel; // The player has run out of fuel while flying
+        RunnerEventSystem.OnFlyingDamage += HandleFlyingDamage; // The player hit an obstacle while flying
+        RunnerEventSystem.OnFlyDown += FlyDown; // The player is flying down to the ground
+        RunnerEventSystem.OnFlyUp += FlyUp; // The player is flying up to the sky
+        RunnerEventSystem.OnStartRunning += Run; // The player start running
+        RunnerEventSystem.OnStartWalking += Walk; // The player start walking
     }
 
     private void OnDestroy()

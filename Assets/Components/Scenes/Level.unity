@@ -1697,6 +1697,7 @@ GameObject:
   - component: {fileID: 605146422}
   - component: {fileID: 605146423}
   - component: {fileID: 605146424}
+  - component: {fileID: 605146425}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1787,6 +1788,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07d7086dcfd66ae4ea383210cca9810c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneSaveLoader
+--- !u!114 &605146425
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 605146419}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 126218e19d4154f48bda680f0245281b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FPSLimiter
+  _targetFPS: 60
 --- !u!4 &607804244 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1632152280382268410, guid: 25f9e2cc1dca0c54095e0cc9ce933fe8, type: 3}
@@ -3745,6 +3759,10 @@ PrefabInstance:
     - target: {fileID: 3728562973671218594, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
       propertyPath: _speedPotionMultiplier
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4371995244880661880, guid: 02e54eb213a627a42a2a21c488c768d7, type: 3}
+      propertyPath: _redBluePotionTimer
+      value: 30
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
